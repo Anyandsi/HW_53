@@ -1,0 +1,154 @@
+<html>
+<head>
+	<title>Swapi</title>
+</head>
+<body>
+	<input type = 'text' id = 'personId'>
+	<button id = 'find-btn'>Find</button>
+	<table border = "0" id ='replyTable' hidden>
+		<tr>
+			<td>Name:</td>
+			<td id = "personName"></td>
+		</tr>
+		<tr>
+			<td>Films:</td>
+			<td id = "personFilms"></td>
+		</tr>
+		<tr>
+			<td>Species:</td>
+			<td id = "personSpecies"></td>
+		</tr>
+		<tr>
+			<td>Language:</td>
+			<td id = "personLang">Hardcore</td>
+		</tr>
+		<tr>
+			<td>Same origin:</td>
+			<td id = "sameOrigin"></td>
+		</tr>
+	</table>
+
+</body>
+<script type="text/javascript">
+	function findPerson(event) {
+    event.preventDefault();
+
+    var id = document.getElementById('personId').value;
+
+    console.log(id);
+
+    if (id > 87 || id < 1) {
+        alert('Person with id: ' + id + ' is not found')
+    } else {
+        fetch("http://swapi.co/api/people/" + id + '/')
+            .then(response => response.json())
+            .then(resp => {
+                console.log(resp);
+
+                document.getElementById('replyTable').removeAttribute("hidden");
+                //get name
+                let name = resp.name;
+                document.getElementById('personName').innerHTML = name;
+
+                //get films
+                let films = resp.films.map(filmUrl => fetch(filmUrl)
+                    .then(resp => resp.json())
+                    .catch(e => console.error(e))
+                );
+
+                return {
+                    films: Promise.all(films)
+                };
+            })
+            .then(data => {
+                let movies = data.films
+                    .then(resp => {
+                        console.log(resp)
+                        return resp;
+                    })
+                    .then(arr => arr
+                        .map(movie => movie.title)
+                        .join(", ")
+                    )
+                    .then(movies => {
+                        document.getElementById('personFilms').innerHTML = movies;
+                    });
+
+            })
+            .catch(error => console.error(error))
+
+        //get species (need new response from server)
+        fetch("http://swapi.co/api/people/" + id + '/')
+            .then(response => response.json())
+            .then(resp => {
+                console.log(resp);
+
+
+                //get films
+                let species = resp.species.map(speciesUrl => fetch(speciesUrl)
+                    .then(resp => resp.json())
+                    .catch(e => console.error(e))
+                );
+
+                return {
+                    species: Promise.all(species)
+                };
+            })
+            .then(data => {
+                let races = data.species
+                    .then(resp => {
+                        console.log(resp)
+                        return resp;
+                    })
+                    .then(arr => {
+                        let textRaces = arr.map(race => race.name).join(", ")
+                        let personRaceUrl = arr[0].url //arr 0 because every person has only ONE species
+                        return {
+                            message: textRaces,
+                            race: personRaceUrl
+                        }
+                    })
+                    .then(races => {
+                        document.getElementById('personSpecies').innerHTML = races.message;
+
+                        fetch(races.race)
+                            .then(response => response.json())
+                            .then(resp => {
+                                let humans = resp.people.map(peopleUrl => fetch(peopleUrl)
+                                    .then(resp => resp.json())
+                                    .catch(e => console.error(e))
+                                );
+
+                                return {
+                                    humans: Promise.all(humans)
+                                };
+                            })
+                            .then(data => {
+
+                                let sameOrigin = data.humans
+                                    .then(resp => {
+                                        console.log(resp)
+                                        return resp;
+                                    })
+                                    .then(arr => arr
+                                        .map(person => person.name)
+                                        .join()
+                                    )
+                                    .then(sameOrigin => {
+                                        document.getElementById('sameOrigin').innerHTML = sameOrigin;
+                                    });
+
+                            })
+                            .catch(error => console.error(error));
+                    })
+            });
+    }
+
+}
+
+
+
+
+document.getElementById("find-btn").addEventListener('click', findPerson);
+</script>
+</html>
